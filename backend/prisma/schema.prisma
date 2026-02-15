@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEAM_LEADER
+  COUNSELLOR
+  ASSOCIATE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  FOLLOW_UP
+  CONVERTED
+  LOST
+}
+
+model Tenant {
+  id           String   @id @default(uuid())
+  company_name String
+  plan         String   @default("FREE")
+  status       String   @default("ACTIVE")
+  created_at   DateTime @default(now())
+  users        User[]
+  leads        Lead[]
+  notes        Note[]
+  tasks        Task[]
+  AssociateRequest AssociateRequest[]
+}
+
+model User {
+  id               String   @id @default(uuid())
+  tenant_id        String
+  tenant           Tenant   @relation(fields: [tenant_id], references: [id])
+  name             String
+  email            String   @unique
+  password         String
+  role             Role     @default(ASSOCIATE)
+  associate_ref_id String?  @unique
+  reports_to_id    String?
+  reports_to       User?    @relation("UserReports", fields: [reports_to_id], references: [id])
+  subordinates     User[]   @relation("UserReports")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  leads            Lead[]
+  notes            Note[]
+  tasks            Task[]
+  AssociateRequest AssociateRequest[]
+}
+
+model Lead {
+  id              String     @id @default(uuid())
+  tenant_id       String
+  tenant          Tenant     @relation(fields: [tenant_id], references: [id])
+  assigned_to_id  String?
+  assigned_to     User?      @relation(fields: [assigned_to_id], references: [id])
+  name            String
+  phone           String
+  email           String?
+  course_interest String?
+  status          LeadStatus @default(NEW)
+  source          String?
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+  notes           Note[]
+  tasks           Task[]
+}
+
+model Note {
+  id         String   @id @default(uuid())
+  tenant_id  String
+  tenant     Tenant   @relation(fields: [tenant_id], references: [id])
+  lead_id    String
+  lead       Lead     @relation(fields: [lead_id], references: [id])
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  content    String
+  created_at DateTime @default(now())
+}
+
+model Task {
+  id             String   @id @default(uuid())
+  tenant_id      String
+  tenant         Tenant   @relation(fields: [tenant_id], references: [id])
+  lead_id        String?
+  lead           Lead?    @relation(fields: [lead_id], references: [id])
+  assigned_to_id String
+  assigned_to    User     @relation(fields: [assigned_to_id], references: [id])
+  title          String
+  description    String?
+  due_date       DateTime?
+  status         String   @default("PENDING")
+  created_at     DateTime @default(now())
+}
+
+model AssociateRequest {
+  id                String   @id @default(uuid())
+  tenant_id         String
+  tenant            Tenant   @relation(fields: [tenant_id], references: [id])
+  requester_user_id String
+  requester         User     @relation(fields: [requester_user_id], references: [id])
+  status            String   @default("PENDING")
+  created_at        DateTime @default(now())
+}

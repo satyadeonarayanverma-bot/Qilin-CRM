@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Frontend Service (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+  # Backend Service (Node.js/Express)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://qilin_user:qilin_pass@postgres:5432/qilin_db
+      - JWT_SECRET=supersecret_jwt_key_change_me
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    depends_on:
+      - postgres
+
+  # Database Service (PostgreSQL)
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=qilin_user
+      - POSTGRES_PASSWORD=qilin_pass
+      - POSTGRES_DB=qilin_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
